@@ -1,0 +1,536 @@
+{% extends "base.html" %}
+<!-- extending to the base html file -->
+
+{% block head %}
+
+<style>
+    #2barcontainer {
+        width: 90vw;
+        height: 80vh;
+        margin: auto;
+        padding-top: 3%;
+        background-color: white;
+        text-align: center;
+    }
+    
+    svg {
+        width: 100%;
+        height: 100%;
+    }
+    
+    h1 {
+        font-family: sans-serif;
+        margin: 0 auto;
+        justify-content: center;
+    }
+    
+    .yAxis {
+        font-size: x-small;
+    }
+    
+    #tooltip {
+        padding: 5px;
+        width: 80px;
+        position: absolute;
+        opacity: .7;
+        background-color: #cabe14;
+        font-family: sans-serif;
+        font-size: 10pt;
+    }
+</style>
+
+{% endblock %} {% block navbar%}
+
+<div class="navbar-nav">
+    <a class="nav-link" href="/">Home</a>
+    <a class="nav-link" href="/geospatial">Geospatial</a>
+    <a class="nav-link active" aria-current="page" href="#">Two-side Barchart</a>
+    <a class="nav-link" href="/barplot">Barchart</a>
+    <a class="nav-link" href="/insights">Insights</a>
+</div>
+
+{% endblock%} {% block content %}
+
+<div id="tooltip"></div>
+
+<div class='container' id='main-box'>
+    <div class="row border" id="mani-row">
+        <h5 id="mani-heading"><b>Manipulation</b></h5>
+        <div class="col-4 border-primary border-end" id="gender-col">
+            <label>Gender:</label>
+            <div class="btn-group" role="group" aria-label="Gender button group">
+                <input type="radio" class="btn-check" name="btnradioGender" id="btnMale" value="Male" onclick="clickBtnViz()" autocomplete="off" checked>
+                <label class="btn btn-outline-primary" for="btnMale">Male</label>
+
+                <input type="radio" class="btn-check" name="btnradioGender" id="btnFemale" value="Female" onclick="clickBtnViz()" autocomplete="off">
+                <label class="btn btn-outline-primary" for="btnFemale">Female</label>
+
+                <input type="radio" class="btn-check" name="btnradioGender" id="btnAll" value="All" onclick="clickBtnViz()" autocomplete="off">
+                <label class="btn btn-outline-primary" for="btnAll">All</label>
+            </div>
+        </div>
+        <div class="col-4 border-primary border-end" id="disease-col">
+            <label>Disease: (Left Side)</label>
+            <div class="btn-group" role="group" aria-label="Disease button group">
+                <input type="radio" class="btn-check" name="btnradioDiseaseLeft" id="btnAsthmaLeft" value="Asthma" onclick="clickBtnViz()" autocomplete="off" checked>
+                <label class="btn btn-outline-primary" for="btnAsthmaLeft">Asthma</label>
+
+                <input type="radio" class="btn-check" name="btnradioDiseaseLeft" id="btnDiabetesLeft" value="Diabetes" onclick="clickBtnViz()" autocomplete="off">
+                <label class="btn btn-outline-primary" for="btnDiabetesLeft">Diabetes</label>
+
+                <input type="radio" class="btn-check" name="btnradioDiseaseLeft" id="btnHeartLeft" value="Heart" onclick="clickBtnViz()" autocomplete="off">
+                <label class="btn btn-outline-primary" for="btnHeartLeft">Heart</label>
+
+                <input type="radio" class="btn-check" name="btnradioDiseaseLeft" id="btnObesityLeft" value="Obesity" onclick="clickBtnViz()" autocomplete="off">
+                <label class="btn btn-outline-primary" for="btnObesityLeft">Obesity</label>
+            </div>
+        </div>
+        <div class="col-4" id="disease-col2">
+            <label>Disease: (Right Side)</label>
+            <div class="btn-group" role="group" aria-label="Disease button group 2">
+                <input type="radio" class="btn-check" name="btnradioDiseaseRight" id="btnAsthmaRight" value="Asthma" onclick="clickBtnViz()" autocomplete="off">
+                <label class="btn btn-outline-primary" for="btnAsthmaRight">Asthma</label>
+
+                <input type="radio" class="btn-check" name="btnradioDiseaseRight" id="btnDiabetesRight" value="Diabetes" onclick="clickBtnViz()" autocomplete="off" checked>
+                <label class="btn btn-outline-primary" for="btnDiabetesRight">Diabetes</label>
+
+                <input type="radio" class="btn-check" name="btnradioDiseaseRight" id="btnHeartRight" value="Heart" onclick="clickBtnViz()" autocomplete="off">
+                <label class="btn btn-outline-primary" for="btnHeartRight">Heart</label>
+
+                <input type="radio" class="btn-check" name="btnradioDiseaseRight" id="btnObesityRight" value="Obesity" onclick="clickBtnViz()" autocomplete="off">
+                <label class="btn btn-outline-primary" for="btnObesityRight">Obesity</label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="2barcontainer" class="p-2">
+    <div class="container">
+        <div class="row">
+            <div class="col pe-0">
+                <h4 id="leftDiseaseLabel"></h4>
+                <svg viewBox="0 0 600 600" id="left"></svg>
+            </div>
+            <div class="col ps-0">
+                <h4 style="text-align: right;" id="rightDiseaseLabel"></h4>
+                <svg viewBox="0 0 600 600" id="right"></svg>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    dataset = ["/static/data/Asthma-Data-Sex.csv",
+        "/static/data/Cancer-Data.csv",
+        "/static/data/Diabetes-Data-Sex.csv",
+        "/static/data/Heart-Data-Sex.csv",
+        "/static/data/Obesity-Data-Sex.csv"
+    ]
+
+    function plotright(choice, disease) {
+        const svg = d3.select("#right")
+        let margins = {
+            top: 20,
+            bottom: 50,
+            left: 20,
+            right: 20
+        }
+        if (disease == "Asthma") {
+            data = dataset[0]
+            let xmin_max = {
+                min: 0,
+                max: 0.4
+            }
+        } else if (disease == "Diabetes") {
+            data = dataset[2]
+            let xmin_max = {
+                min: 0,
+                max: 0.4
+            }
+        } else if (disease == "Heart") {
+            data = dataset[3]
+            let xmin_max = {
+                min: 0,
+                max: 0.4
+            }
+        } else if (disease == "Obesity") {
+            data = dataset[4]
+            let xmin_max = {
+                min: 0,
+                max: 0.4
+            }
+        }
+
+
+        d3.csv(data, function(d) {
+            return {
+                State: String(d.Location),
+                Male: Number(d["Male"]) * 100,
+                Female: Number(d["Female"]) * 100,
+                All: Number(d["All Adults"]) * 100
+            }
+        }).then(d => {
+            console.log(d)
+
+            k = d3.map(d, function(d) {
+                    return d["State"]
+                }) // Just creating a list of states for further use
+            svg.selectAll("*").remove()
+
+            if (choice === "All") {
+                //  Stacking data
+                let stack = d3.stack().keys(["All"])
+                stackedseries1 = stack(d)
+                color = ["#cabe14"]
+
+                //Legend
+                // svg.append("circle").attr("cx",450).attr("cy",20).attr("r", 6).style("fill","#cabe14")
+                // svg.append("text").attr("x", 460).attr("y", 25).text(disease).style("font-size", "25px").attr("alignment-baseline", "top-right")
+            }
+            if (choice === "Male") {
+                let stack = d3.stack().keys(["Male"])
+                stackedseries1 = stack(d)
+                color = ['lightblue']
+
+                //Legend
+                // svg.append("circle").attr("cx",450).attr("cy",20).attr("r", 6).style("fill",'lightblue' )
+                // svg.append("text").attr("x", 460).attr("y", 25).text(disease).style("font-size", "25px").attr("alignment-baseline", "top-right")
+            }
+            if (choice === "Female") {
+                let stack = d3.stack().keys(["Female"])
+                stackedseries1 = stack(d)
+                color = ['#E9A6A6']
+
+                //Legend
+                // svg.append("circle").attr("cx",450).attr("cy",20).attr("r", 6).style("fill", '#E9A6A6')
+                // svg.append("text").attr("x", 460).attr("y", 25).text(disease).style("font-size", "25px").attr("alignment-baseline", "top-right")
+            }
+
+
+            // Finding minimum and maximum 
+            let xmin_max = {
+                min: 0,
+                max: 50
+            }
+
+            const width = svg.attr('width')
+            const height = svg.attr('height')
+
+            // const svgm = d3.select("#middle")
+            // Making x and y scales
+            xScaleRight = d3.scaleLinear()
+                .domain([xmin_max.min, xmin_max.max])
+                .range([100, 600 - margins.right])
+            yScaleRight = d3.scaleBand()
+                .domain(d3.map(d, function(d) {
+                    return d["State"]
+                }))
+                .range([(600 - margins.bottom), (0 + margins.top)])
+                .padding(1)
+
+
+
+
+            // Creating groups for the data
+            let groups1 = svg.selectAll('g').data(stackedseries1).enter().append('g')
+                .style('fill', function(d, i) {
+                    return color[i]
+                })
+
+
+            // Making rectangles for the bars and adding transitions
+            let rectsRight = groups1.selectAll("rect.right")
+                .data(function(d) {
+                    return d
+                })
+                .enter()
+                .append("rect")
+                .attr("x", function(d) {
+                    return 600 + margins.left
+                })
+                .attr("y", function(d, i) {
+                    return yScaleRight(k[i])
+                })
+                .attr("class", "Right")
+                .attr("height", d => 5)
+                .attr("width", function(d) {
+                    return 0
+                })
+
+
+
+            rectsRight.transition()
+                .delay(function(d, i) {
+                    return i * 10
+                })
+                .duration(100)
+                .attr("x", function(d) {
+                    return xScaleRight(d[0])
+                })
+                .attr("width", function(d) {
+                    return xScaleRight(d[1]) - xScaleRight(d[0])
+                })
+                // .attr("padding","1px")
+                .attr("stroke", "black")
+                .attr("height", d => 5)
+            rectsRight.on("mousemove", function(m, d) {
+                d3.select("#tooltip")
+                    .html(m.target.attributes.x.ownerElement.__data__[1].toFixed(2))
+                    .style("left", m.clientX + "px")
+                    .style("top", m.clientY + "px")
+                    .style("background-color", color)
+                    .style("opacity", 0.9)
+
+            })
+
+            // rectsRight.on("mousemove", function(m, d) {
+            //     console.log(d)
+            //     d3.select("#tooltip")
+            //         .style("opacity", 0.9)
+            // })
+
+            rectsRight.on("mouseleave", function(m, d) {
+                d3.select('#tooltip')
+                    .transition()
+                    .delay(100)
+                    .duration(200)
+                    .style('opacity', 0)
+            })
+
+
+
+
+
+            let y_axisRight = svg.append('g')
+                .attr("transform", "translate(" + (85) + ", " + 2 + ")")
+                .attr("class", "yAxisRight")
+                .call(d3.axisLeft(yScaleRight))
+            let x_axisRight = svg.append('g')
+                .attr("transform", "translate(" + (0) + ", " + (600 - margins.bottom) + ")")
+                .attr("class", "xAxisRight")
+                .call(d3.axisBottom(xScaleRight))
+
+
+        })
+    }
+
+    function plotleft(choice, disease) {
+        const svg2 = d3.select("#left")
+        let margins2 = {
+            top: 20,
+            bottom: 50,
+            left: 20,
+            right: 20
+        }
+        if (disease == "Asthma") {
+            data2 = dataset[0]
+            let xmin_max = {
+                min: 0,
+                max: 0.2
+            }
+
+        } else if (disease == "Diabetes") {
+            data2 = dataset[2]
+            let xmin_max = {
+                min: 0,
+                max: 0.2
+            }
+
+        } else if (disease == "Heart") {
+            data2 = dataset[3]
+            let xmin_max = {
+                min: 0,
+                max: 0.2
+            }
+
+        } else if (disease == "Obesity") {
+            data2 = dataset[4]
+            let xmin_max = {
+                min: 0,
+                max: 0.2
+            }
+
+        }
+
+        d3.csv(data2, function(d) {
+            return {
+                State: String(d.Location),
+                Male: Number(d["Male"]) * 100,
+                Female: Number(d["Female"]) * 100,
+                All: Number(d["All Adults"]) * 100
+            }
+        }).then(d => {
+            // console.log(d)
+
+            k = d3.map(d, function(d) {
+                    return d["State"]
+                }) // Just creating a list of states for further use
+            svg2.selectAll("*").remove()
+
+            if (choice === "All") {
+                //  Stacking data
+                let stack = d3.stack().keys(["All"])
+                stackedseries2 = stack(d)
+                colorl = ["#01DF01"]
+
+                //Legend
+
+                // svg2.append("text").attr("x", 20).attr("y", 25).text(disease).style("font-size", "25px").attr("alignment-baseline", "top-right")
+            }
+            if (choice === "Male") {
+                let stack = d3.stack().keys(["Male"])
+                stackedseries2 = stack(d)
+                colorl = ['#6588ed']
+
+                //Legend
+                // svg2.append("text").attr("x", 20).attr("y", 25).text(disease).style("font-size", "25px").attr("alignment-baseline", "top-right")
+            }
+            if (choice === "Female") {
+                let stack = d3.stack().keys(["Female"])
+                stackedseries2 = stack(d)
+                colorl = ['#F781F3']
+
+                //Legend
+                // svg2.append("text").attr("x", 20).attr("y", 25).text(disease).style("font-size", "25px").attr("alignment-baseline", "top-right")
+            }
+
+
+            // Finding minimum and maximum 
+            let xmin_max = {
+                min: 0,
+                max: 50
+            }
+
+            const width = svg2.attr('width')
+            const height = svg2.attr('height')
+
+
+            // Making x and y scales
+            yScale2 = d3.scaleBand()
+                .domain(d3.map(d, function(d) {
+                    return d["State"]
+                }))
+                .range([(600 - margins2.bottom), (0 + margins2.top)])
+                .padding(1)
+
+
+            xScaleLeft = d3.scaleLinear()
+                .domain([xmin_max.min, xmin_max.max])
+                .range([570 + margins2.left, 0 + margins2.left])
+
+            let groups2 = svg2.selectAll('g').data(stackedseries2).enter().append('g')
+                .style('fill', function(d, i) {
+                    return colorl[i]
+                })
+                // console.log(groups)
+
+
+            // Making rectangles for the bars and adding transitions
+            let rectsLeft = groups2.selectAll("rect.left")
+                .data(function(d) {
+                    return d
+                })
+                .enter()
+                .append("rect")
+                .attr("x", function(d) {
+                    return xScaleLeft(d[1])
+                })
+                .attr("y", function(d, i) {
+                    return yScale2(k[i])
+                })
+                // console.log(function(d,i) {return yScale(k[i])})
+                .attr("class", "Left")
+                .attr("height", d => 5)
+                .attr("width", function(d) {
+                    return 0
+                })
+                .attr("padding", "1px")
+                .attr("stroke", "black")
+
+
+
+
+            rectsLeft.transition()
+                .delay(function(d, i) {
+                    return i * 10
+                })
+                .duration(100)
+                .attr("x", function(d) {
+                    return xScaleLeft(d[1])
+                })
+                .attr("width", function(d) {
+                    return xScaleLeft(d[0]) - xScaleLeft(d[1])
+                })
+                // .attr("padding","1px")
+                .attr("stroke", "black")
+                .attr("height", d => 5)
+
+            rectsLeft.on("mouseenter", function(m, d) {
+                d3.select("#tooltip")
+                    .html(m.target.attributes.x.ownerElement.__data__[1].toFixed(2))
+                    .style("left", m.clientX + "px")
+                    .style("top", m.clientY + "px")
+                    .style("background-color", colorl)
+                    .style("opacity", 0.9)
+
+            })
+
+            // rectsLeft.on("mousemove", function(m, d) {
+            //     console.log(d)
+            //     d3.select("#tooltip")
+            //         .html(m.target.attributes.x.ownerElement.__data__[1])
+            //         .style("left", m.clientX + "px")
+            //         .style("top", m.clientY + "px")
+            //         .style("opacity", 0.9)
+            // })
+
+            rectsLeft.on("mouseout", function(m, d) {
+                d3.select('#tooltip')
+                    .transition()
+                    .delay(100)
+                    .duration(200)
+                    .style('opacity', 0)
+            })
+
+            // Creating axes
+
+            let x_axisLeft = svg2.append('g')
+                .attr("transform", "translate(" + (-0) + ", " + (600 - margins2.bottom) + ")")
+                .attr("class", "xAxisLeft")
+                .call(d3.axisBottom(xScaleLeft))
+
+        })
+
+
+    }
+
+
+    function clickBtnViz() {
+        leftDisease = document.querySelector('input[name="btnradioDiseaseLeft"]:checked').value;
+        rightDisease = document.querySelector('input[name="btnradioDiseaseRight"]:checked').value;
+        gender = document.querySelector('input[name="btnradioGender"]:checked').value;
+
+        console.log(leftDisease, rightDisease, gender)
+        plotleft(gender, leftDisease)
+        plotright(gender, rightDisease)
+
+        if (gender == "All") {
+            gender = "Adults"
+        } else if (gender == "Male") {
+            gender = "Males"
+        } else if (gender == "Female") {
+            gender = "Females"
+        }
+
+        if (leftDisease == "Heart") leftDisease = "Heart diseases";
+        if (rightDisease == "Heart") rightDisease = "Heart diseases";
+
+        // editing the headings
+        document.getElementById('leftDiseaseLabel').innerText = `Barchart Visualization for percentage of ${gender} with ${leftDisease}`
+        document.getElementById('rightDiseaseLabel').innerText = `Barchart Visualization for percentage of ${gender} with ${rightDisease}`
+    }
+
+    // initial visualization
+    clickBtnViz()
+</script>
+
+{% endblock %}

@@ -1,0 +1,55 @@
+body {
+    font-family: sans-serif;
+    color: #222626;
+    background-color: white;
+}
+
+.dark-mode {
+    background-color: #222626;
+    color: white;
+}
+
+.btn-group {
+    display: flex;
+}
+
+#main-box {
+    padding-top: 15px;
+    width: 95vw;
+    /* margin: 0; */
+}
+
+#mani-heading {
+    text-align: center;
+}
+
+#mani-row {
+    padding-top: 5px;
+    margin-top: 5px;
+    padding-bottom: 10px;
+    margin-bottom: 5px;
+    align-items: center;
+}
+
+#viz-row {
+    height: 65vh;
+}
+
+#container {
+    width: 900px;
+    height: 100%;
+}
+
+.yAxis {
+    font-size: x-small;
+}
+
+#tooltip {
+    padding: 5px;
+    width: 80px;
+    position: absolute;
+    opacity: .7;
+    background-color: white;
+    font-family: sans-serif;
+    font-size: 10pt;
+}

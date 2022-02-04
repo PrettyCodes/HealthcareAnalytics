@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+<!-- extending to the base html file -->
+
+{% block head %}
+
+<!-- deck.GL library -->
+<script src="https://unpkg.com/deck.gl@^8.0.0/dist.min.js"></script>
+<!-- My mapbox token -->
+<script src="/static/js/token.js"></script>
+<!-- Mapbox library -->
+<script src='https://api.mapbox.com/mapbox-gl-js/v2.5.1/mapbox-gl.js'></script>
+<link href='https://api.mapbox.com/mapbox-gl-js/v2.5.1/mapbox-gl.css' rel='stylesheet' /> {% endblock %} {% block navbar%}
+
+<div class="navbar-nav">
+    <a class="nav-link active" aria-current="page" href="#">Home</a>
+    <a class="nav-link" href="/geospatial">Geospatial</a>
+    <a class="nav-link" href="/twosidebarchart">Two-side Barchart</a>
+    <a class="nav-link" href="/barplot">Barchart</a>
+    <!-- <a class="nav-link" href="https://hedsw.github.io/datavisualizationproject2/">Insights</a> -->
+    <a class="nav-link" href="/insights">Insights</a>
+</div>
+
+{% endblock%} {% block content %}
+
+<div class='container' id='main-box'>
+    <div class="row" id='head-row'>
+        <h3><b>Healthcare Analytics (DSC-530 Project)</b></h3>
+    </div>
+    <div class="row border" id="mani-row">
+        <h5 id="mani-heading"><b>Manipulation</b></h5>
+        <div class="col-4 border-primary border-end" id="gender-col">
+            <label>Gender:</label>
+            <div class="btn-group" role="group" aria-label="Gender button group">
+                <input type="radio" class="btn-check" name="btnradioGender" id="btnMale" value="Male" onclick="clickBtnViz()" autocomplete="off" checked>
+                <label class="btn btn-outline-primary" for="btnMale">Male</label>
+
+                <input type="radio" class="btn-check" name="btnradioGender" id="btnFemale" value="Female" onclick="clickBtnViz()" autocomplete="off">
+                <label class="btn btn-outline-primary" for="btnFemale">Female</label>
+
+                <input type="radio" class="btn-check" name="btnradioGender" id="btnAll" value="All" onclick="clickBtnViz()" autocomplete="off">
+                <label class="btn btn-outline-primary" for="btnAll">All</label>
+            </div>
+        </div>
+        <div class="col-8" id="gender-col">
+            <label>Disease:</label>
+            <div class="btn-group" role="group" aria-label="Disease button group">
+                <input type="radio" class="btn-check" name="btnradioDisease" id="btnAsthma" value="Asthma" onclick="clickBtnViz()" autocomplete="off" checked>
+                <label class="btn btn-outline-primary" for="btnAsthma">Asthma</label>
+
+                <input type="radio" class="btn-check" name="btnradioDisease" id="btnDiabetes" value="Diabetes" onclick="clickBtnViz()" autocomplete="off">
+                <label class="btn btn-outline-primary" for="btnDiabetes">Diabetes</label>
+
+                <input type="radio" class="btn-check" name="btnradioDisease" id="btnHeart" value="Heart" onclick="clickBtnViz()" autocomplete="off">
+                <label class="btn btn-outline-primary" for="btnHeart">Heart</label>
+
+                <input type="radio" class="btn-check" name="btnradioDisease" id="btnObesity" value="Obesity" onclick="clickBtnViz()" autocomplete="off">
+                <label class="btn btn-outline-primary" for="btnObesity">Obesity</label>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Visualization conatiner, will 3 visualization in 3 columns-->
+<div class='container-fluid' id='main-box'>
+    <div class="row" id="viz-row">
+        <div class="col border-end" id="geo-col">
+            <h5 id='geoHeading'>Geospatial Visualization for Males with Asthma</h5>
+            <h6 id='geosubHeading'>Upon hover, each state will show the percentage of Males reported with Asthma in respect to the country</h6>
+            <div id="container"></div>
+        </div>
+        <div class="col" id="bar-col">
+            <div id="tooltip" style="opacity: 0;"></div>
+            <h5 id='barHeading'>Barchart Visualization for Males with Asthma</h5>
+            <svg style="height:100%;" viewbox="0 0 700 600"></svg>
+        </div>
+    </div>
+</div>
+
+<script>
+    // This is the main js that will hold D3 code
+
+    // starting with geospatial viz
+    diseaseData = '/static/data/states-diseases.json'
+
+    function geoPlot(jsonData, disease, gender) {
+        d3.json(jsonData).then(data => {
+            states = data.features
+            console.log(states);
+
+            // decide variable based on the parameters passed
+            let detail = ''
+            if (disease == 'asthma' || disease == 'Asthma') {
+                detail = 'asth_'
+            } else if (disease == 'diabetes' || disease == 'Diabetes') {
+                detail = 'diabetes_'
+            } else if (disease == 'heart' || disease == 'Heart') {
+                detail = 'heart_'
+            } else if (disease == 'obesity' || disease == 'Obesity') {
+                detail = 'obesity_'
+            }
+
+            if (gender == 'male' || gender == 'Male') {
+                detail += 'male'
+            } else if (gender == 'female' || gender == 'Female') {
+                detail += 'female'
+            } else if (gender == 'all' || gender == 'All') {
+                detail += 'all'
+            }
+            console.log(detail)
+
+            let states_data = d3.group(states, d => {
+                return d.properties.STATEFP
+            })
+
+            // extent of the variable for our color scale
+            countExtent = d3.extent(states, d => {
+                return +d.properties[detail]
+            });
+            console.log(countExtent)
+
+            // defining the color scale
+            let colorScale = d3.scaleLog()
+                .domain(countExtent)
+                .interpolate(d3.interpolateCubehelix.gamma(1));
+
+            // editing the color scale for different genders
+            if (gender == "Male") {
+                colorScale.range(['#E6FAFA', "#01595f"])
+            } else if (gender == "Female") {
+                colorScale.range(['#f5b2b2', "#8c0e0e"])
+            } else if (gender == "All") {
+                colorScale.range(['#a8f8b8', "#007e19"])
+            }
+
+            // getting the color using the state id
+            function Color(code) {
+                count_temp = states_data.get(code)[0].properties[detail]
+                if (count_temp != 'N/A') {
+                    return colorScale(parseFloat(states_data.get(code)[0].properties[detail]));
+                } else {
+                    return 'white'
+                }
+            }
+
+            const {
+                DeckGL,
+                GeoJsonLayer
+            } = deck;
+
+            const geoJsonLayer = new GeoJsonLayer({
+                data: states,
+                stroked: true,
+                filled: true,
+                lineWidthMinPixels: 0.5,
+                getLineColor: [0, 0, 0],
+                getFillColor: d => {
+                    try {
+                        c = d3.rgb(Color(d.properties.STATEFP));
+                        console.log(c)
+                        return [c['r'], c['g'], c['b']];
+                    } catch (error) {
+                        console.log('not found')
+                    }
+                },
+                opacity: 0.4,
+                pickable: true,
+            })
+
+            new DeckGL({
+                container: "container",
+                mapStyle: "mapbox://styles/pc365/ckvdkaag532lo14pb5rdf06ok",
+                mapboxApiAccessToken: token,
+                initialViewState: {
+                    longitude: -105.334961,
+                    latitude: 40.239551,
+                    zoom: 3,
+                    maxZoom: 16
+                },
+                controller: true,
+                layers: [geoJsonLayer],
+                // defining the basic level tooltip
+                getTooltip: ({
+                    object
+                }) => object && {
+                    html: `<div>${object.properties.NAME}</div><div>${((object.properties[detail])*100).toFixed(2)}%</div>`,
+                    style: {
+                        backgroundColor: 'azure'
+                    }
+                }
+            })
+        })
+    }
+
+    // second viz: barchart
+    barDataset = ["/static/data/Asthma-Data-Sex.csv",
+        "/static/data/Cancer-Data.csv",
+        "/static/data/Diabetes-Data-Sex.csv",
+        "/static/data/Heart-Data-Sex.csv",
+        "/static/data/Obesity-Data-Sex.csv"
+    ]
+
+    function plot(data, choice) {
+        // svg.selectAll("*").remove()
+
+        const svg = d3.select("svg")
+        let margins = {
+            top: 20,
+            bottom: 50,
+            left: 100,
+            right: 20
+        }
+        d3.csv(data, function(d) {
+            return {
+                State: String(d.Location),
+                Male: Number(d["Male"]) * 100,
+                Female: Number(d["Female"]) * 100,
+                All: Number(d["All Adults"]) * 100
+            }
+        }).then(d => {
+
+            k = d3.map(d, function(d) {
+                    return d["State"]
+                }) // Just creating a list of states for further use
+            svg.selectAll("*").remove()
+
+            if (choice === "All") {
+                //  Stacking data
+                let stack = d3.stack().keys(["All"])
+                stackedseries = stack(d)
+                color = ['#3fb356']
+
+                //Legend
+                svg.append("circle").attr("cx", 1080).attr("cy", 20).attr("r", 6).style("fill", 'lightblue')
+                svg.append("circle").attr("cx", 1080).attr("cy", 40).attr("r", 6).style("fill", '#E9A6A6')
+                svg.append("text").attr("x", 1100).attr("y", 25).text("Male").style("font-size", "15px").attr("alignment-baseline", "top-right")
+                svg.append("text").attr("x", 1100).attr("y", 45).text("Female").style("font-size", "15px").attr("alignment-baseline", "top-right")
+            }
+            if (choice === "Male") {
+                let stack = d3.stack().keys(["Male"])
+                stackedseries = stack(d)
+                color = ['lightblue']
+
+                //Legend
+                svg.append("circle").attr("cx", 1080).attr("cy", 20).attr("r", 6).style("fill", 'lightblue')
+                svg.append("text").attr("x", 1100).attr("y", 25).text("Male").style("font-size", "15px").attr("alignment-baseline", "top-right")
+            }
+            if (choice === "Female") {
+                let stack = d3.stack().keys(["Female"])
+                stackedseries = stack(d)
+                color = ['#E9A6A6']
+
+                //Legend
+                svg.append("circle").attr("cx", 1080).attr("cy", 40).attr("r", 6).style("fill", '#E9A6A6')
+                svg.append("text").attr("x", 1100).attr("y", 45).text("Female").style("font-size", "15px").attr("alignment-baseline", "top-right")
+            }
+
+
+            // Finding minimum and maximum 
+            let xmin_max = {
+                min: 0,
+                // max: d3.max(stackedseries, function(d) {
+                //     return d3.max(d, function(d) {
+                //         return d[1] + 10;
+                //     })
+                // })
+                max: 50
+            }
+
+            const width = svg.attr('width')
+            const height = svg.attr('height')
+
+            // Making x and y scales
+            xScale = d3.scaleLinear()
+                .domain([xmin_max.min, xmin_max.max])
+                .range([0 + margins.left, 600 - margins.right])
+            yScale = d3.scaleBand()
+                .domain(d3.map(d, function(d) {
+                    return d["State"]
+                }))
+                .range([(600 - margins.bottom), (0 + margins.top)])
+                .padding(1)
+
+
+            // colr = ['#E9A6A6','#1F1D36']       // Specifying two colors for male and female
+
+            // Creating groups for the data
+            let groups = svg.selectAll('g').data(stackedseries).enter().append('g')
+                .style('fill', function(d, i) {
+                    return color[i]
+                })
+
+
+            // Making rectangles for the bars and adding transitions
+            let rects = groups.selectAll("rect")
+                .data(function(d) {
+                    return d
+                })
+                .enter()
+                .append("rect")
+                .attr("x", function(d) {
+                    return 0 + margins.left
+                })
+                .attr("y", function(d, i) {
+                    return yScale(k[i])
+                })
+                .attr("height", d => 10)
+                .attr("width", function(d) {
+                    return 0
+                })
+
+            rects.on("mouseenter", function(m, d) {
+                d3.select("#tooltip")
+                    .html(m.target.attributes.x.ownerElement.__data__[1].toFixed(2))
+                    .style("left", m.clientX + "px")
+                    .style("top", m.clientY + "px")
+                    .style("background-color", "white")
+                    .style("opacity", 1)
+
+            })
+
+            // rects.on("mousemove", function(m, d) {
+            //     console.log(d)
+            //     d3.select("#tooltip")
+            //         .html(m.target.attributes.x.ownerElement.__data__[1])
+            //         .style("left", m.clientX + "px")
+            //         .style("top", m.clientY + "px")
+            //         .style("opacity", 0.9)
+            // })
+
+            rects.on("mouseout", function(m, d) {
+                d3.select('#tooltip')
+                    .transition()
+                    .delay(100)
+                    .duration(200)
+                    .style('opacity', 0)
+            })
+
+            rects.transition()
+                .delay(function(d, i) {
+                    return i * 10
+                })
+                .duration(100)
+                .attr("x", function(d) {
+                    return xScale(d[0])
+                })
+                .attr("width", function(d) {
+                    return xScale(d[1]) - xScale(d[0])
+                })
+                .attr("stroke", "black")
+                .attr("height", d => 10)
+
+
+            // Creating axes
+            let y_axis = svg.append('g')
+                .attr("transform", "translate(" + margins.left + ", " + 5 + ")")
+                .attr("class", "yAxis")
+                .call(d3.axisLeft(yScale))
+            let x_axis = svg.append('g')
+                .attr("transform", "translate(0, " + (600 - margins.bottom) + ")")
+                .attr("class", "yAxis")
+                .call(d3.axisBottom(xScale))
+        })
+    }
+
+    function sbarplot(disease, dataset, gender) {
+        if (disease === "Asthma") {
+            data = dataset[0]
+            plot(data, gender)
+        }
+        if (disease === "Cancer") {
+            data = dataset[1]
+            plot(data, gender)
+        }
+        if (disease === "Diabetes") {
+            data = dataset[2]
+            plot(data, gender)
+        }
+        if (disease === "Heart") {
+            data = dataset[3]
+            plot(data, gender)
+        }
+        if (disease === "Obesity") {
+            data = dataset[4]
+            plot(data, gender)
+        }
+    }
+
+    // on click function to handle all changes in the visualizations
+    function clickBtnViz() {
+        disease = document.querySelector('input[name="btnradioDisease"]:checked').value;
+        gender = document.querySelector('input[name="btnradioGender"]:checked').value;
+
+        geoPlot(diseaseData, disease, gender)
+        sbarplot(disease, barDataset, gender)
+
+        if (gender == "All") {
+            gender = "Adults"
+        } else if (gender == "Male") {
+            gender = "Males"
+        } else if (gender == "Female") {
+            gender = "Females"
+        }
+
+        if (disease == "Heart") disease = "Heart diseases";
+
+        // editing all the headings and sub headings
+        document.getElementById('geoHeading').innerText = `Geospatial Visualization for percentage of ${gender} with ${disease}`
+        document.getElementById('geosubHeading').innerText = `Upon hover, each state will show the percentage of ${gender} reported with ${disease} in respect to the country`
+        document.getElementById('barHeading').innerText = `Barchart Visualization for percentage of ${gender} with ${disease}`
+    }
+
+    // initial plot
+    clickBtnViz()
+</script>
+
+{% endblock %}
