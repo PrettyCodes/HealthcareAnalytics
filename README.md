@@ -1,2 +1,2 @@
 # HealthcareAnalytics
- Healthcare Analytics Data Viz project
+ Healthcare Analytics Data Visualization project
